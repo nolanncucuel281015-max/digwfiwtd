@@ -168,7 +168,14 @@ public final class CheatModeClient implements ClientModInitializer {
             return;
         }
         if (solo()) {
-            Server.command("gamemode " + mode + " " + me());
+            net.minecraft.world.GameMode gm = switch (mode) {
+                case "creative" -> net.minecraft.world.GameMode.CREATIVE;
+                case "spectator" -> net.minecraft.world.GameMode.SPECTATOR;
+                case "adventure" -> net.minecraft.world.GameMode.ADVENTURE;
+                default -> net.minecraft.world.GameMode.SURVIVAL;
+            };
+            // Appel direct (pas de commande) : marche même si les cheats du monde sont désactivés.
+            Server.withPlayer(MinecraftClient.getInstance().player.getUuid(), sp -> sp.changeGameMode(gm));
             say("§7Mode de jeu : §b" + mode);
         } else {
             // En multijoueur, seul le serveur peut changer ton mode : il faut y être OP.

@@ -456,8 +456,11 @@ final class Cheats {
         if (p.isOnGround()) {
             lastSafe = p.getEntityPos();
         } else if (lastSafe != null && antiVoidCooldown == 0 && p.getY() < mc.world.getBottomY() - 2) {
-            Server.command(String.format(Locale.ROOT, "tp %s %.3f %.3f %.3f", me(), lastSafe.x, lastSafe.y, lastSafe.z));
-            Server.withPlayer(p.getUuid(), ServerPlayerEntity::onLanding);
+            Vec3d safe = lastSafe;
+            Server.withPlayer(p.getUuid(), sp -> {
+                sp.requestTeleport(safe.x, safe.y, safe.z);
+                sp.onLanding();
+            });
             p.setVelocity(Vec3d.ZERO);
             antiVoidCooldown = 20;
             say("§eAntiVoid : ramené au sol.");
@@ -482,8 +485,11 @@ final class Cheats {
         Vec3d dest = new Vec3d(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
 
         if (solo) {
-            Server.command(String.format(Locale.ROOT, "tp %s %.1f %.1f %.1f", me(), dest.x, dest.y, dest.z));
-            Server.withPlayer(p.getUuid(), ServerPlayerEntity::onLanding);
+            Server.withPlayer(p.getUuid(), sp -> {
+                sp.requestTeleport(dest.x, dest.y, dest.z);
+                sp.onLanding();
+            });
+            say("§7Téléporté.");
         } else if (dest.distanceTo(p.getEntityPos()) > MP_TP_RANGE) {
             say("§cTrop loin : en multijoueur le serveur refuse les TP de plus de " + (int) MP_TP_RANGE + " blocs.");
         } else {
@@ -587,9 +593,11 @@ final class Cheats {
 
         if (solo) {
             int targetId = target.getId();
-            Server.command(String.format(Locale.ROOT, "tp %s %.3f %.3f %.3f facing entity %s eyes",
-                    me(), behind.x, behind.y, behind.z, target.getUuidAsString()));
+            Vec3d to = behind;
+            float[] rot = rotationTo(behind.add(0, p.getStandingEyeHeight(), 0), target.getEyePos());
             Server.withPlayer(p.getUuid(), sp -> {
+                sp.teleport((net.minecraft.server.world.ServerWorld) sp.getEntityWorld(), to.x, to.y, to.z,
+                        java.util.Set.of(), rot[0], rot[1], false);
                 Entity e = sp.getEntityWorld().getEntityById(targetId);
                 if (e != null && e.isAlive()) sp.attack(e);
                 sp.onLanding();
