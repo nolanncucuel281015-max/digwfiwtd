@@ -81,10 +81,10 @@ public final class ClickGui extends Screen {
 
     // =================================================================== contenu des panneaux
 
-    private record Row(String label, boolean active, boolean sub, String desc, Click click) {}
+    private record Row(String label, boolean active, boolean sub, String desc, OnClick click) {}
 
     @FunctionalInterface
-    private interface Click {
+    private interface OnClick {
         void on(int button);
     }
 
