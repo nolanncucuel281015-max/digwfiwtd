@@ -12,8 +12,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(MinecraftClient.class)
 public abstract class MinecraftClientMixin {
 
-    @Inject(method = "hasOutline", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "hasOutline", at = @At("HEAD"), cancellable = true, require = 0)
     private void cheatmode$outline(Entity entity, CallbackInfoReturnable<Boolean> cir) {
-        if (Outlines.shouldOutline(entity)) cir.setReturnValue(true);
+        try {
+            if (Outlines.shouldOutline(entity)) cir.setReturnValue(true);
+        } catch (Throwable ignored) {
+            // ne jamais faire planter le rendu
+        }
     }
 }
