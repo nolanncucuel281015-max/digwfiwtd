@@ -2,6 +2,8 @@ package fr.cheatmode;
 
 public enum Module {
     FLY("Fly"),
+    SPEED("Speed"),
+    NOFALL("NoFall"),
     AUTOCLICK("AutoClick"),
     KILLAURA("KillAura"),
     KILLAURA_LEGIT("KillAura Legit"),
@@ -10,13 +12,9 @@ public enum Module {
     XRAY("X-Ray"),
     SNEAK("Sneak");
 
-    private final String display;
+    public final String display;
 
     Module(String display) {
         this.display = display;
-    }
-
-    public String display() {
-        return display;
     }
 }

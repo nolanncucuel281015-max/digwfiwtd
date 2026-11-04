@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "cheatmode",
+  "version": "${version}",
+  "name": "CheatMode",
+  "description": "Fly, autoclick, killaura, tpaura, click TP, x-ray, sneak et -gm. Monde solo uniquement.",
+  "authors": ["nolanncucuel281015-max"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["fr.cheatmode.CheatModeClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.4",
+    "java": ">=21"
+  }
+}
