@@ -2,7 +2,11 @@ name: build
 
 on:
   push:
+    branches-ignore: [ci-results]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -14,8 +18,53 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x gradlew && ./gradlew build --no-daemon
+        with:
+          gradle-version: "9.2.1"
+
+      - name: Versions disponibles
+        run: |
+          mkdir -p out
+          {
+            echo "== yarn 1.21.11"; curl -s https://meta.fabricmc.net/v2/versions/yarn/1.21.11 | head -c 600; echo
+            echo "== loader"; curl -s https://meta.fabricmc.net/v2/versions/loader | head -c 400; echo
+            echo "== fabric-api"; curl -s https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml | grep -o '<version>[^<]*1.21.11[^<]*</version>' | tail -5
+            echo "== loom"; curl -s https://maven.fabricmc.net/net/fabricmc/fabric-loom/maven-metadata.xml | grep -o '<version>[^<]*</version>' | tail -15
+          } > out/versions.txt 2>&1
+          cat out/versions.txt
+
+      - name: Compilation
+        id: build
+        continue-on-error: true
+        run: gradle build --no-daemon --stacktrace 2>&1 | tee out/build.log; exit ${PIPESTATUS[0]}
+
+      - name: Signatures des classes Minecraft
+        if: always()
+        run: |
+          CP=$(find ~/.gradle .gradle -name '*.jar' 2>/dev/null | grep -Ei 'minecraft|fabric' | grep -v sources | tr '\n' ':')
+          while read -r c; do
+            [ -z "$c" ] && continue
+            echo "=================== $c"
+            javap -cp "$CP" -public "$c" 2>&1 | head -400
+          done < .github/probe-classes.txt > out/probe.txt
+          wc -l out/probe.txt
+
+      - name: Envoi des résultats sur la branche ci-results
+        if: always()
+        run: |
+          cp -r out /tmp/out
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan ci-results-tmp
+          git rm -rfq . || true
+          cp -r /tmp/out/* .
+          git add -A && git commit -qm "CI ${GITHUB_SHA}"
+          git push -f origin HEAD:ci-results
+
       - uses: actions/upload-artifact@v4
+        if: steps.build.outcome == 'success'
         with:
           name: cheatmode-jar
           path: build/libs/*.jar
+
+      - name: Échec de la compilation
+        if: steps.build.outcome != 'success'
+        run: exit 1

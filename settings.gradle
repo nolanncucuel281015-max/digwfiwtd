@@ -4,5 +4,8 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+    plugins {
+        id 'fabric-loom' version "${loom_version}"
+    }
 }
 rootProject.name = 'cheatmode'
