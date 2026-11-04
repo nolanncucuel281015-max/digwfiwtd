@@ -335,7 +335,7 @@ final class Cheats {
 
     /** Casse jusqu'à 4 blocs par passage, au niveau des pieds et au-dessus. */
     private static void nukerServer(ServerPlayerEntity sp, int r) {
-        World w = sp.getWorld();
+        World w = sp.getEntityWorld();
         BlockPos c = sp.getBlockPos();
         int broken = 0;
         for (int dy = 0; dy <= r; dy++) {
@@ -353,7 +353,7 @@ final class Cheats {
 
     private static void magnet(ServerPlayerEntity sp, double range) {
         Box box = sp.getBoundingBox().expand(range);
-        World w = sp.getWorld();
+        World w = sp.getEntityWorld();
         for (ItemEntity e : w.getEntitiesByClass(ItemEntity.class, box, x -> true)) {
             e.setPosition(sp.getX(), sp.getY(), sp.getZ());
         }
@@ -454,7 +454,7 @@ final class Cheats {
     private void antiVoid(MinecraftClient mc, ClientPlayerEntity p) {
         if (antiVoidCooldown > 0) antiVoidCooldown--;
         if (p.isOnGround()) {
-            lastSafe = p.getPos();
+            lastSafe = p.getEntityPos();
         } else if (lastSafe != null && antiVoidCooldown == 0 && p.getY() < mc.world.getBottomY() - 2) {
             Server.command(String.format(Locale.ROOT, "tp %s %.3f %.3f %.3f", me(), lastSafe.x, lastSafe.y, lastSafe.z));
             Server.withPlayer(p.getUuid(), ServerPlayerEntity::onLanding);
@@ -484,7 +484,7 @@ final class Cheats {
         if (solo) {
             Server.command(String.format(Locale.ROOT, "tp %s %.1f %.1f %.1f", me(), dest.x, dest.y, dest.z));
             Server.withPlayer(p.getUuid(), ServerPlayerEntity::onLanding);
-        } else if (dest.distanceTo(p.getPos()) > MP_TP_RANGE) {
+        } else if (dest.distanceTo(p.getEntityPos()) > MP_TP_RANGE) {
             say("§cTrop loin : en multijoueur le serveur refuse les TP de plus de " + (int) MP_TP_RANGE + " blocs.");
         } else {
             p.setPosition(dest);
@@ -581,16 +581,16 @@ final class Cheats {
         if (list.isEmpty()) return;
         LivingEntity target = list.get(0);
 
-        Vec3d behind = target.getPos().subtract(Vec3d.fromPolar(0, target.getYaw()).multiply(1.5));
-        Box box = p.getBoundingBox().offset(behind.subtract(p.getPos()));
-        if (!mc.world.isSpaceEmpty(p, box)) behind = target.getPos();
+        Vec3d behind = target.getEntityPos().subtract(Vec3d.fromPolar(0, target.getYaw()).multiply(1.5));
+        Box box = p.getBoundingBox().offset(behind.subtract(p.getEntityPos()));
+        if (!mc.world.isSpaceEmpty(p, box)) behind = target.getEntityPos();
 
         if (solo) {
             int targetId = target.getId();
             Server.command(String.format(Locale.ROOT, "tp %s %.3f %.3f %.3f facing entity %s eyes",
                     me(), behind.x, behind.y, behind.z, target.getUuidAsString()));
             Server.withPlayer(p.getUuid(), sp -> {
-                Entity e = sp.getWorld().getEntityById(targetId);
+                Entity e = sp.getEntityWorld().getEntityById(targetId);
                 if (e != null && e.isAlive()) sp.attack(e);
                 sp.onLanding();
             });
@@ -627,7 +627,7 @@ final class Cheats {
                 || bhr.getType() != HitResult.Type.BLOCK) return;
         BlockState st = mc.world.getBlockState(bhr.getBlockPos());
         PlayerInventory inv = p.getInventory();
-        int best = inv.selectedSlot;
+        int best = inv.getSelectedSlot();
         float bestSpeed = inv.getStack(best).getMiningSpeedMultiplier(st);
         for (int i = 0; i < 9; i++) {
             float s = inv.getStack(i).getMiningSpeedMultiplier(st);
@@ -636,7 +636,7 @@ final class Cheats {
                 bestSpeed = s;
             }
         }
-        inv.selectedSlot = best;
+        inv.setSelectedSlot(best);
     }
 
     /** Pose le bloc tenu en main sous les pieds (comme un vrai clic droit). */

@@ -10,6 +10,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.EnumSet;
@@ -64,8 +65,10 @@ public final class CheatModeClient implements ClientModInitializer {
         });
     }
 
+    private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("cheatmode", "main"));
+
     private static KeyBinding key(String id, int code) {
-        return KeyBindingHelper.registerKeyBinding(new KeyBinding(id, InputUtil.Type.KEYSYM, code, "category.cheatmode"));
+        return KeyBindingHelper.registerKeyBinding(new KeyBinding(id, InputUtil.Type.KEYSYM, code, CATEGORY));
     }
 
     private void endTick(MinecraftClient mc) {

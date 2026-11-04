@@ -1,6 +1,7 @@
 package fr.cheatmode;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -165,7 +166,7 @@ public final class ClickGui extends Screen {
             ctx.drawTextWithShadow(textRenderer, title, pos.x + 4, pos.y + 3, 0xFFFFFFFF);
             if (editMode) {
                 ctx.drawTextWithShadow(textRenderer, "✥", pos.x + W - 10, pos.y + 3, 0xFFFFFFFF);
-                ctx.drawBorder(pos.x - 1, pos.y - 1, W + 2, h + 2, dragging == c ? 0xFFFFFFFF : 0xFFFFD040);
+                border(ctx, pos.x - 1, pos.y - 1, W + 2, h + 2, dragging == c ? 0xFFFFFFFF : 0xFFFFD040);
             }
             if (!pos.open) continue;
 
@@ -208,11 +209,20 @@ public final class ClickGui extends Screen {
         }
     }
 
+    private static void border(DrawContext ctx, int x, int y, int w, int h, int color) {
+        ctx.fill(x, y, x + w, y + 1, color);
+        ctx.fill(x, y + h - 1, x + w, y + h, color);
+        ctx.fill(x, y, x + 1, y + h, color);
+        ctx.fill(x + w - 1, y, x + w, y + h, color);
+    }
+
     // =================================================================== souris
 
     @Override
-    public boolean mouseClicked(double mx, double my, int button) {
-        if (super.mouseClicked(mx, my, button)) return true; // boutons du bas
+    public boolean mouseClicked(Click click, boolean doubled) {
+        if (super.mouseClicked(click, doubled)) return true; // boutons du bas
+        double mx = click.x(), my = click.y();
+        int button = click.button();
 
         for (int i = order.size() - 1; i >= 0; i--) { // du panneau du dessus vers le dessous
             Category c = order.get(i);
@@ -252,24 +262,25 @@ public final class ClickGui extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
-        if (dragging != null && button == 0) {
+    public boolean mouseDragged(Click click, double dx, double dy) {
+        double mx = click.x(), my = click.y();
+        if (dragging != null && click.button() == 0) {
             Settings.PanelPos pos = Settings.INSTANCE.panel(dragging);
             pos.x = Math.max(0, Math.min(width - W, (int) mx - dragOffX));
             pos.y = Math.max(0, Math.min(height - HEADER, (int) my - dragOffY));
             dirty = true;
             return true;
         }
-        return super.mouseDragged(mx, my, button, dx, dy);
+        return super.mouseDragged(click, dx, dy);
     }
 
     @Override
-    public boolean mouseReleased(double mx, double my, int button) {
-        if (dragging != null && button == 0) {
+    public boolean mouseReleased(Click click) {
+        if (dragging != null && click.button() == 0) {
             dragging = null;
             return true;
         }
-        return super.mouseReleased(mx, my, button);
+        return super.mouseReleased(click);
     }
 
     @Override

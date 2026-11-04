@@ -1,6 +1,6 @@
 {
-  "category.cheatmode": "CheatMode",
   "key.cheatmode.preset": "X-Ray + Sneak + Legit KillAura",
   "key.cheatmode.menu": "Open CheatMode menu",
-  "key.cheatmode.zoom": "Zoom (Zoom module)"
+  "key.cheatmode.zoom": "Zoom (Zoom module)",
+  "key.category.cheatmode.main": "CheatMode"
 }

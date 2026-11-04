@@ -38,3 +38,6 @@ net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
 net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
 net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents
+net.minecraft.storage.NbtReadView
+net.minecraft.util.ErrorReporter
+net.minecraft.storage.ReadView

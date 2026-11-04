@@ -40,7 +40,7 @@ jobs:
       - name: Signatures des classes Minecraft
         if: always()
         run: |
-          CP=$(find ~/.gradle .gradle -name '*.jar' 2>/dev/null | grep -Ei 'minecraft|fabric' | grep -v sources | tr '\n' ':')
+          CP=$(gradle printCompileClasspath -q --no-daemon | grep '^CP=' | cut -c4-)
           while read -r c; do
             [ -z "$c" ] && continue
             echo "=================== $c"
@@ -55,6 +55,7 @@ jobs:
           git config user.name ci && git config user.email ci@users.noreply.github.com
           git checkout --orphan ci-results-tmp
           git rm -rfq . || true
+          git clean -fdxq
           cp -r /tmp/out/* .
           git add -A && git commit -qm "CI ${GITHUB_SHA}"
           git push -f origin HEAD:ci-results

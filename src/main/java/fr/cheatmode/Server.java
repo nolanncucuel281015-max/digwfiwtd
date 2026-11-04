@@ -28,7 +28,7 @@ public final class Server {
         List<String> copy = List.copyOf(cmds);
         s.execute(() -> {
             var source = s.getCommandSource().withSilent();
-            for (String c : copy) s.getCommandManager().executeWithPrefix(source, c);
+            for (String c : copy) s.getCommandManager().parseAndExecute(source, c);
         });
     }
 

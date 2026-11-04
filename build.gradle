@@ -27,3 +27,8 @@ java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
+
+// Utilisé par la CI pour afficher les signatures des classes Minecraft
+tasks.register('printCompileClasspath') {
+    doLast { println "CP=" + sourceSets.main.compileClasspath.asPath }
+}

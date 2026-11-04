@@ -8,6 +8,8 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.StringNbtReader;
+import net.minecraft.storage.NbtReadView;
+import net.minecraft.util.ErrorReporter;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.HashMap;
@@ -84,13 +86,13 @@ public abstract class BlockEsp {
     private Entity create(BlockPos pos, Block block) {
         try {
             float sc = scale(), off = (1 - sc) / 2;
-            NbtCompound nbt = StringNbtReader.parse(String.format(Locale.ROOT,
+            NbtCompound nbt = StringNbtReader.readCompound(String.format(Locale.ROOT,
                     "{block_state:{Name:\"%s\"},Glowing:1b,glow_color_override:%d,brightness:{sky:15,block:15},"
                             + "transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],"
                             + "translation:[%.3ff,%.3ff,%.3ff],scale:[%.3ff,%.3ff,%.3ff]}}",
                     displayBlock(block), color(block), off, off, off, sc, sc, sc));
             DisplayEntity.BlockDisplayEntity d = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, world);
-            d.readNbt(nbt);
+            d.readData(NbtReadView.create(ErrorReporter.EMPTY, world.getRegistryManager(), nbt));
             d.setId(nextId--);
             d.setPosition(pos.getX(), pos.getY(), pos.getZ());
             return d;
