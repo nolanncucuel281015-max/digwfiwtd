@@ -1,0 +1,72 @@
+== yarn 1.21.11
+[
+  {
+    "gameVersion": "1.21.11",
+    "separator": "+build.",
+    "build": 6,
+    "maven": "net.fabricmc:yarn:1.21.11+build.6",
+    "version": "1.21.11+build.6",
+    "stable": true
+  },
+  {
+    "gameVersion": "1.21.11",
+    "separator": "+build.",
+    "build": 5,
+    "maven": "net.fabricmc:yarn:1.21.11+build.5",
+    "version": "1.21.11+build.5",
+    "stable": false
+  },
+  {
+    "gameVersion": "1.21.11",
+    "separator": "+build.",
+    "build": 4,
+    "maven": "net.fabricmc:yarn:1.21.11+build.4",
+    "version": "1.21.11+build.4",
+    "stable": false
+  },
+  {
+    "gameVersion": "1.21.11",
+    
+== loader
+[
+  {
+    "separator": ".",
+    "build": 1,
+    "maven": "net.fabricmc:fabric-loader:0.20.1",
+    "version": "0.20.1",
+    "stable": true
+  },
+  {
+    "separator": ".",
+    "build": 0,
+    "maven": "net.fabricmc:fabric-loader:0.20.0",
+    "version": "0.20.0",
+    "stable": false
+  },
+  {
+    "separator": ".",
+    "build": 5,
+    "maven": "net.fabricmc:fabric-loader:0.19.5",
+    "version": "0.19.5"
+== fabric-api
+<version>0.141.2+1.21.11</version>
+<version>0.141.3+1.21.11</version>
+<version>0.141.4+1.21.11</version>
+<version>0.141.5+1.21.11</version>
+<version>0.141.6+1.21.11</version>
+== loom
+<version>1.18-SNAPSHOT</version>
+<version>1.18.2</version>
+<version>1.18.3</version>
+<version>1.18.4</version>
+<version>1.19.0-alpha.1</version>
+<version>1.19.0-alpha.2</version>
+<version>1.19.0-alpha.3</version>
+<version>1.19.0-alpha.4</version>
+<version>1.19.0-alpha.5</version>
+<version>1.19.0-alpha.6</version>
+<version>1.19.0-alpha.7</version>
+<version>1.19.1</version>
+<version>1.19-SNAPSHOT</version>
+<version>1.19.2</version>
+<version>1.19.3</version>
