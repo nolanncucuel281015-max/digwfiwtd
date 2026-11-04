@@ -1,4 +1,4 @@
-# CheatMode — mod Fabric (Minecraft 1.21.4)
+# CheatMode — mod Fabric (Minecraft 1.21.11)
 
 Plus de 40 modules de cheat, un menu déplaçable (Shift droit) et des commandes dans le chat.
 Marche **en solo** et **sur les serveurs multijoueur que tu autorises** (serveurs anarchie).
@@ -20,7 +20,7 @@ En multijoueur, c'est le serveur qui a le dernier mot, donc :
 - KillAura / KillAura Legit / TpAura : réglage **Joueurs** (0/1) pour attaquer aussi les joueurs.
 
 ## Installation
-1. Installe [Fabric Loader](https://fabricmc.net/use/) pour la 1.21.4 et mets **Fabric API** dans `mods/`.
+1. Installe [Fabric Loader](https://fabricmc.net/use/) pour la **1.21.11** et mets **Fabric API** (1.21.11) dans `mods/`.
 2. Compile : `./gradlew build` (Windows : `gradlew.bat build`) — il faut Java 21.
 3. Copie `build/libs/cheatmode-1.0.0.jar` dans ton dossier `.minecraft/mods/`.
 
