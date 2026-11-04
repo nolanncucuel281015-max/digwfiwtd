@@ -94,7 +94,10 @@ public final class ClickGui extends Screen {
             if (m.category != c) continue;
             List<Settings.Setting> settings = Settings.of(m);
             String arrow = settings.isEmpty() ? "" : (expanded.contains(m) ? " §7▾" : " §7▸");
-            rows.add(new Row(m.display + arrow, cm.isOn(m), false, m.description, button -> {
+            boolean blocked = !CheatModeClient.solo() && !m.multiplayer();
+            String label = blocked ? "§8" + m.display + " (solo)" : m.display + arrow;
+            String desc = blocked ? m.description + " — solo uniquement" : m.description;
+            rows.add(new Row(label, cm.isOn(m), false, desc, button -> {
                 if (button == 0) cm.toggleModule(m);
                 else if (button == 1 && !settings.isEmpty()) {
                     if (!expanded.remove(m)) expanded.add(m);
@@ -185,6 +188,12 @@ public final class ClickGui extends Screen {
             ctx.fill(tx - 3, ty - 3, tx + tw + 3, ty + 11, 0xF0000000);
             ctx.drawTextWithShadow(textRenderer, hoverDesc, tx, ty, 0xFFFFFFFF);
         }
+
+        String mode = CheatModeClient.solo() ? "§aMode : solo (tous les modules)"
+                : CheatModeClient.allowedServer() ? "§aServeur autorisé : " + CheatModeClient.currentServer()
+                : CheatModeClient.currentServer() != null ? "§cServeur non autorisé — tape -allow si c'est un serveur anarchie"
+                : "";
+        ctx.drawCenteredTextWithShadow(textRenderer, mode, width / 2, height - 64, 0xFFFFFFFF);
 
         // Aide + état en bas
         String help = editMode

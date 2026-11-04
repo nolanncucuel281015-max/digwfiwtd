@@ -25,6 +25,7 @@ public final class Settings {
 
     // ---- valeurs (les noms de champs sont ceux du fichier json)
     public double killauraRange = 5.5;
+    public double targetPlayers = 0;     // 1 = KillAura / TpAura attaquent aussi les joueurs
     public double legitRange = 3.0;
     public double legitFov = 70;
     public double tpauraRange = 16;
@@ -46,6 +47,9 @@ public final class Settings {
     public double fastBreakLevel = 3;
 
     public Map<String, PanelPos> panels = new LinkedHashMap<>();
+
+    /** Serveurs multijoueur où le mod a le droit de s'activer (serveurs anarchie). */
+    public List<String> allowedServers = new java.util.ArrayList<>();
 
     public static final class PanelPos {
         public int x, y;
@@ -74,6 +78,7 @@ public final class Settings {
             Settings s = GSON.fromJson(r, Settings.class);
             if (s != null) {
                 if (s.panels == null) s.panels = new LinkedHashMap<>();
+                if (s.allowedServers == null) s.allowedServers = new java.util.ArrayList<>();
                 INSTANCE = s;
             }
         } catch (Exception e) {
@@ -117,14 +122,21 @@ public final class Settings {
         }, min, max, step);
     }
 
+    private static Setting players(Settings s) {
+        return new Setting("Joueurs (0/1)", () -> s.targetPlayers, v -> s.targetPlayers = v, 0, 1, 1);
+    }
+
     public static List<Setting> of(Module m) {
         Settings s = INSTANCE;
         return switch (m) {
-            case KILLAURA -> List.of(new Setting("Portée", () -> s.killauraRange, v -> s.killauraRange = v, 3, 6, 0.5));
+            case KILLAURA -> List.of(new Setting("Portée", () -> s.killauraRange, v -> s.killauraRange = v, 3, 6, 0.5),
+                    players(s));
             case KILLAURA_LEGIT -> List.of(
                     new Setting("Portée", () -> s.legitRange, v -> s.legitRange = v, 2, 4.5, 0.25),
-                    new Setting("Angle", () -> s.legitFov, v -> s.legitFov = v, 30, 180, 10));
-            case TPAURA -> List.of(new Setting("Portée", () -> s.tpauraRange, v -> s.tpauraRange = v, 4, 32, 2));
+                    new Setting("Angle", () -> s.legitFov, v -> s.legitFov = v, 30, 180, 10),
+                    players(s));
+            case TPAURA -> List.of(new Setting("Portée", () -> s.tpauraRange, v -> s.tpauraRange = v, 4, 32, 2),
+                    players(s));
             case AUTOCLICK -> List.of(new Setting("CPS", () -> s.autoclickCps, v -> s.autoclickCps = v, 1, 20, 1));
             case SPEED -> List.of(live(m, "Niveau", () -> s.speedLevel, v -> s.speedLevel = v, 1, 10, 1));
             case CLICKTP -> List.of(new Setting("Portée", () -> s.clicktpRange, v -> s.clicktpRange = v, 20, 200, 10));

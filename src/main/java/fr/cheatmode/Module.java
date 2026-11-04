@@ -70,6 +70,14 @@ public enum Module {
         this.commands.addAll(List.of(aliases));
     }
 
+    /** Modules impossibles en multijoueur : le serveur garde le contrôle (vie, faim, effets...). */
+    private static final java.util.Set<Module> SOLO_ONLY = java.util.EnumSet.of(
+            REACH, TIMER, ANTIVOID, GOD, NOHUNGER, ANTIFIRE, NODROWN, MAGNET, FASTBREAK);
+
+    public boolean multiplayer() {
+        return !SOLO_ONLY.contains(this);
+    }
+
     public String command() {
         return commands.get(0);
     }

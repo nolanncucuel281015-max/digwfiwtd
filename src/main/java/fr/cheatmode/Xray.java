@@ -33,7 +33,7 @@ public final class Xray extends BlockEsp {
     }
 
     public Xray() {
-        super("cmx", 350);
+        super(350);
     }
 
     @Override

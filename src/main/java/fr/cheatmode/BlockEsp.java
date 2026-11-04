@@ -2,34 +2,42 @@ package fr.cheatmode;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.StringNbtReader;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Set;
 
 /**
- * Surbrillance de blocs à travers les murs : sur chaque bloc trouvé, on fait apparaître un
- * "block_display" glowing (contour de couleur visible à travers tout). Aucune texture n'est
- * modifiée, donc ça marche aussi avec Sodium et les resource packs.
+ * Surbrillance de blocs à travers les murs. Sur chaque bloc trouvé, on ajoute dans le monde
+ * du CLIENT un "block_display" invisible pour le serveur, qui reçoit un contour lumineux
+ * (voir {@link Outlines}). Marche donc en solo comme en multijoueur, et le serveur ne voit rien.
  */
 public abstract class BlockEsp {
 
-    private final String tag;
-    private final int max;
-    private final Map<BlockPos, Block> shown = new HashMap<>();
-    private RegistryKey<World> dimension;
-    /** Identifiant de session : permet de nettoyer les restes d'une partie précédente. */
-    private String session = newSession();
+    private static final Set<Integer> IDS = new HashSet<>();
+    private static int nextId = -1_000_000; // ids négatifs : jamais utilisés par le serveur
 
-    protected BlockEsp(String tag, int max) {
-        this.tag = tag;
+    public static boolean isEspEntity(Entity e) {
+        return IDS.contains(e.getId());
+    }
+
+    private record Shown(Block block, int id) {}
+
+    private final int max;
+    private final Map<BlockPos, Shown> shown = new HashMap<>();
+    private ClientWorld world;
+
+    protected BlockEsp(int max) {
         this.max = max;
     }
 
@@ -46,61 +54,65 @@ public abstract class BlockEsp {
 
     public void refresh(MinecraftClient mc) {
         if (mc.player == null || mc.world == null) return;
-        List<String> cmds = new ArrayList<>();
-        if (mc.world.getRegistryKey() != dimension) {
-            clear();
-            dimension = mc.world.getRegistryKey();
+        if (mc.world != world) { // changement de monde / dimension : les anciens displays ont disparu avec lui
+            forget();
+            world = mc.world;
         }
 
         Map<BlockPos, Block> found = new HashMap<>();
         scan(mc, found, max);
 
-        Iterator<Map.Entry<BlockPos, Block>> it = shown.entrySet().iterator();
+        Iterator<Map.Entry<BlockPos, Shown>> it = shown.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<BlockPos, Block> e = it.next();
-            if (found.get(e.getKey()) != e.getValue()) {
-                cmds.add("kill @e[type=minecraft:block_display,tag=" + posTag(e.getKey()) + "]");
+            Map.Entry<BlockPos, Shown> e = it.next();
+            if (found.get(e.getKey()) != e.getValue().block()) {
+                remove(e.getValue().id());
                 it.remove();
             }
         }
 
-        float sc = scale(), off = (1 - sc) / 2;
         for (Map.Entry<BlockPos, Block> e : found.entrySet()) {
             if (shown.containsKey(e.getKey())) continue;
-            BlockPos b = e.getKey();
-            cmds.add(String.format(Locale.ROOT,
-                    "summon minecraft:block_display %d %d %d {block_state:{Name:\"%s\"},Glowing:1b,"
-                            + "glow_color_override:%d,brightness:{sky:15,block:15},"
-                            + "Tags:[\"%s\",\"%ss_%s\",\"%s\"],"
+            Entity display = create(e.getKey(), e.getValue());
+            if (display == null) continue;
+            world.addEntity(display);
+            IDS.add(display.getId());
+            shown.put(e.getKey(), new Shown(e.getValue(), display.getId()));
+        }
+    }
+
+    private Entity create(BlockPos pos, Block block) {
+        try {
+            float sc = scale(), off = (1 - sc) / 2;
+            NbtCompound nbt = StringNbtReader.parse(String.format(Locale.ROOT,
+                    "{block_state:{Name:\"%s\"},Glowing:1b,glow_color_override:%d,brightness:{sky:15,block:15},"
                             + "transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],"
                             + "translation:[%.3ff,%.3ff,%.3ff],scale:[%.3ff,%.3ff,%.3ff]}}",
-                    b.getX(), b.getY(), b.getZ(), displayBlock(e.getValue()), color(e.getValue()),
-                    tag, tag, session, posTag(b), off, off, off, sc, sc, sc));
-            shown.put(b, e.getValue());
+                    displayBlock(block), color(block), off, off, off, sc, sc, sc));
+            DisplayEntity.BlockDisplayEntity d = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, world);
+            d.readNbt(nbt);
+            d.setId(nextId--);
+            d.setPosition(pos.getX(), pos.getY(), pos.getZ());
+            return d;
+        } catch (Exception ex) {
+            return null;
         }
+    }
 
-        // Restes d'anciennes sessions (chunks qui étaient déchargés au moment du nettoyage).
-        cmds.add("kill @e[type=minecraft:block_display,tag=" + tag + ",tag=!" + tag + "s_" + session + "]");
-        Server.commands(cmds);
+    private void remove(int id) {
+        IDS.remove(id);
+        if (world != null) world.removeEntity(id, Entity.RemovalReason.DISCARDED);
     }
 
     public void clear() {
+        for (Shown s : shown.values()) remove(s.id());
         shown.clear();
-        Server.command("kill @e[type=minecraft:block_display,tag=" + tag + "]");
     }
 
-    /** Nouvelle partie : on oublie tout sans envoyer de commande. */
-    public void reset() {
+    /** Nouveau monde : on oublie tout (les entités sont parties avec l'ancien monde). */
+    public void forget() {
+        for (Shown s : shown.values()) IDS.remove(s.id());
         shown.clear();
-        dimension = null;
-        session = newSession();
-    }
-
-    private String posTag(BlockPos p) {
-        return (tag + "_" + p.getX() + "_" + p.getY() + "_" + p.getZ()).replace('-', 'n');
-    }
-
-    private static String newSession() {
-        return Long.toString(ThreadLocalRandom.current().nextLong() & Long.MAX_VALUE, 36);
+        world = null;
     }
 }

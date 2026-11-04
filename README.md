@@ -1,7 +1,23 @@
 # CheatMode — mod Fabric (Minecraft 1.21.4)
 
 Plus de 40 modules de cheat, un menu déplaçable (Shift droit) et des commandes dans le chat.
-**Fonctionne uniquement en monde solo** (se désactive tout seul en multijoueur).
+Marche **en solo** et **sur les serveurs multijoueur que tu autorises** (serveurs anarchie).
+
+## Multijoueur (serveurs anarchie)
+Le mod reste coupé sur un serveur tant que tu ne l'as pas autorisé :
+- `-allow` : autorise le serveur où tu es (enregistré dans la config)
+- `-disallow` : le retire de la liste
+- `-servers` : liste des serveurs autorisés
+
+⚠️ N'autorise que des serveurs où les cheats sont permis. Ailleurs, tu te fais bannir.
+
+En multijoueur, c'est le serveur qui a le dernier mot, donc :
+- **solo uniquement** (grisés dans le menu) : Reach, Timer, AntiVoid, GodMode, NoHunger, AntiFire, NoDrown, Magnet, FastBreak
+- **limités** : ClickTP et TpAura 8 blocs max, KillAura 5,5 blocs max, Nuker un bloc à la fois à vitesse normale
+- `-gm` envoie `/gamemode`, qui ne marche que si tu es OP
+- Fly redescend un peu toutes les 2 s pour éviter le kick « flying is not enabled » de base ;
+  les serveurs avec un anti-cheat plus poussé peuvent quand même te rattraper.
+- KillAura / KillAura Legit / TpAura : réglage **Joueurs** (0/1) pour attaquer aussi les joueurs.
 
 ## Installation
 1. Installe [Fabric Loader](https://fabricmc.net/use/) pour la 1.21.4 et mets **Fabric API** dans `mods/`.

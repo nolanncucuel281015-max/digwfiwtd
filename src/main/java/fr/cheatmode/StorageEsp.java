@@ -22,7 +22,7 @@ import java.util.Map;
 public final class StorageEsp extends BlockEsp {
 
     public StorageEsp() {
-        super("cms", 200);
+        super(200);
     }
 
     @Override
