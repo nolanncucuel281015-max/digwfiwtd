@@ -37,6 +37,25 @@ jobs:
         continue-on-error: true
         run: gradle build --no-daemon --stacktrace 2>&1 | tee out/build.log; exit ${PIPESTATUS[0]}
 
+      - name: Test de lancement du jeu (sans écran)
+        if: steps.build.outcome == 'success'
+        run: |
+          sudo apt-get install -y -qq xvfb mesa-utils > /dev/null
+          mkdir -p run && echo "eula=true" > run/eula.txt
+          (xvfb-run -a -s "-screen 0 1280x720x24" gradle runClient --no-daemon > out/smoke.log 2>&1 &)
+          ok=0
+          for i in $(seq 1 60); do
+            sleep 5
+            if ls run/crash-reports/*.txt >/dev/null 2>&1; then echo "CRASH"; cat run/crash-reports/*.txt | head -80 >> out/smoke.log; break; fi
+            if grep -q "Could not execute entrypoint\|Mixin apply failed\|InvalidInjectionException" out/smoke.log; then echo "ERREUR"; break; fi
+            if grep -qE "Created: [0-9]+x[0-9]+x[0-9]+ minecraft:textures/atlas/blocks|Sound engine started" out/smoke.log; then ok=1; echo "LANCEMENT OK"; sleep 15; break; fi
+          done
+          pkill -f runClient || true; pkill java || true
+          if ls run/crash-reports/*.txt >/dev/null 2>&1; then ok=0; cat run/crash-reports/*.txt | head -80 >> out/smoke.log; fi
+          echo "smoke_ok=$ok" >> out/smoke.log
+          tail -40 out/smoke.log
+          [ "$ok" = 1 ] || echo "::warning::Le jeu n'a pas démarré correctement"
+
       - name: Signatures des classes Minecraft
         if: always()
         run: |
