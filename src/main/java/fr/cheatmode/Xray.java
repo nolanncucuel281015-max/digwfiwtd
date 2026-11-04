@@ -43,7 +43,6 @@ public final class Xray {
         for (Block b : blocks) ORES.put(b, color);
     }
 
-    private static final int RADIUS = 14;
     private static final int MAX = 350;
 
     private final Map<BlockPos, Block> shown = new HashMap<>();
@@ -65,6 +64,7 @@ public final class Xray {
         }
 
         // 1) Minerais autour du joueur (le client connaît déjà les blocs).
+        final int RADIUS = (int) Settings.INSTANCE.xrayRadius;
         BlockPos center = mc.player.getBlockPos();
         Map<BlockPos, Block> found = new HashMap<>();
         BlockPos.Mutable p = new BlockPos.Mutable();

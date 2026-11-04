@@ -8,8 +8,20 @@ Mod client : fly, speed, nofall, autoclick, killaura (normale + legit), tpaura, 
 2. Compile : `./gradlew build` (Windows : `gradlew.bat build`) — il faut Java 21.
 3. Copie `build/libs/cheatmode-1.0.0.jar` dans ton dossier `.minecraft/mods/`.
 
-## Touche
-**X** → x-ray + sneak + killaura legit (rappuie pour couper). Modifiable dans Options → Commandes → CheatMode.
+## Touches
+- **Shift droit** → ouvre le menu.
+- **X** → x-ray + sneak + killaura legit (rappuie pour couper).
+
+Modifiables dans Options → Commandes → CheatMode.
+
+## Menu (Shift droit)
+Un panneau par catégorie : **Combat**, **Mouvement**, **Rendu**, **Joueur** (boutons de mode de jeu + preset X).
+- Clic gauche sur un module → ON / OFF (surligné quand actif).
+- Clic droit sur un module → ses réglages (portée, CPS, niveau de speed, rayon du x-ray…). Sur un réglage : clic gauche = +, clic droit = −.
+- **Modifier** → active le déplacement : tire les panneaux par leur titre pour les placer où tu veux.
+- Clic droit sur un titre → replier / déplier le panneau.
+- **Sauvegarder** → enregistre les positions et les réglages dans `config/cheatmode.json` (rechargés au prochain lancement).
+- **Réinitialiser** → remet les panneaux à leur place d'origine.
 
 ## Commandes (dans le chat, le message n'est pas envoyé)
 | Commande | Effet |

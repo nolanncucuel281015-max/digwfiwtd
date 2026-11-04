@@ -43,23 +43,21 @@ public final class CheatModeClient implements ClientModInitializer {
 
     private static final String PREFIX = "-";
 
-    // Réglages
-    private static final double KILLAURA_RANGE = 5.5;
-    private static final double LEGIT_RANGE = 3.0;
-    private static final double LEGIT_FOV = 70;    // degrés devant toi
-    private static final double TPAURA_RANGE = 16;
-    private static final int AUTOCLICK_CPS = 12;
-    private static final double CLICKTP_RANGE = 120;
+    private static CheatModeClient instance;
 
     private final Set<Module> on = EnumSet.noneOf(Module.class);
     private final Xray xray = new Xray();
     private KeyBinding presetKey;
-    private int speedLevel = 3;
+    private KeyBinding menuKey;
     private long tick;
     private boolean lastUse;
 
     @Override
     public void onInitializeClient() {
+        instance = this;
+        Settings.load();
+        menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.cheatmode.menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, "category.cheatmode"));
         presetKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.cheatmode.preset", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_X, "category.cheatmode"));
 
@@ -68,7 +66,7 @@ public final class CheatModeClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(this::endTick);
         HudRenderCallback.EVENT.register((ctx, counter) -> {
             MinecraftClient mc = MinecraftClient.getInstance();
-            if (mc.options.hudHidden || on.isEmpty()) return;
+            if (mc.options.hudHidden || on.isEmpty() || mc.currentScreen instanceof ClickGui) return;
             int y = 2;
             for (Module m : on) {
                 ctx.drawTextWithShadow(mc.textRenderer, m.display, 2, y, 0x55FF55);
@@ -139,6 +137,50 @@ public final class CheatModeClient implements ClientModInitializer {
         }
     }
 
+    // =================================================================== API (menu)
+
+    public static CheatModeClient get() {
+        return instance;
+    }
+
+    public boolean isOn(Module m) {
+        return on.contains(m);
+    }
+
+    /** Active / désactive un module depuis le menu. */
+    public void toggleModule(Module m) {
+        if (!Server.available()) {
+            say("§cCheatMode ne marche qu'en monde solo.");
+            return;
+        }
+        switch (m) {
+            case FLY -> setFly(!on.contains(m));
+            case SPEED -> speed("");
+            case XRAY -> setXray(!on.contains(m));
+            case SNEAK -> setSneak(!on.contains(m));
+            case KILLAURA_LEGIT -> legitAura(!on.contains(m));
+            case KILLAURA -> { on.remove(Module.KILLAURA_LEGIT); toggle(m); }
+            default -> toggle(m);
+        }
+    }
+
+    public void runGamemode(String mode) {
+        if (!Server.available()) {
+            say("§cCheatMode ne marche qu'en monde solo.");
+            return;
+        }
+        gamemode(mode);
+    }
+
+    public void runPreset() {
+        if (Server.available()) preset(); else say("§cCheatMode ne marche qu'en monde solo.");
+    }
+
+    /** Appelé quand on change le niveau de speed dans le menu. */
+    public void refreshSpeed() {
+        if (on.contains(Module.SPEED)) giveSpeed();
+    }
+
     // =================================================================== commandes
 
     private void gamemode(String arg) {
@@ -160,7 +202,7 @@ public final class CheatModeClient implements ClientModInitializer {
     private void speed(String arg) {
         if (!arg.isEmpty()) {
             try {
-                speedLevel = Math.max(1, Math.min(10, Integer.parseInt(arg)));
+                Settings.INSTANCE.speedLevel = Math.max(1, Math.min(10, Integer.parseInt(arg)));
             } catch (NumberFormatException e) {
                 say("§cUsage : -speed [niveau 1-10]");
                 return;
@@ -173,13 +215,13 @@ public final class CheatModeClient implements ClientModInitializer {
         }
         if (on.contains(Module.SPEED)) giveSpeed();
         else Server.command("effect clear " + me() + " minecraft:speed");
-        say("§7Speed : " + (on.contains(Module.SPEED) ? "§aON §7(niveau " + speedLevel + ")" : "§cOFF"));
+        say("§7Speed : " + (on.contains(Module.SPEED) ? "§aON §7(niveau " + (int) Settings.INSTANCE.speedLevel + ")" : "§cOFF"));
     }
 
     private void giveSpeed() {
         Server.commands(List.of(
                 "effect clear " + me() + " minecraft:speed",
-                "effect give " + me() + " minecraft:speed infinite " + (speedLevel - 1) + " true"));
+                "effect give " + me() + " minecraft:speed infinite " + ((int) Settings.INSTANCE.speedLevel - 1) + " true"));
     }
 
     private boolean toggle(Module m) {
@@ -254,6 +296,7 @@ public final class CheatModeClient implements ClientModInitializer {
                 {"sneak", "accroupi en permanence"},
                 {"x  (ou touche X)", "x-ray + sneak + killaura legit"},
                 {"list / off", "modules actifs / tout couper"},
+                {"(Shift droit)", "ouvre le menu"},
         };
         for (String[] l : lines) say("§e" + PREFIX + l[0] + " §7- " + l[1]);
     }
@@ -270,10 +313,8 @@ public final class CheatModeClient implements ClientModInitializer {
         ClientPlayerEntity player = mc.player;
         if (player == null || mc.world == null) return;
 
-        while (presetKey.wasPressed()) {
-            if (Server.available()) preset();
-            else say("§cCheatMode ne marche qu'en monde solo.");
-        }
+        while (presetKey.wasPressed()) runPreset();
+        while (menuKey.wasPressed()) mc.setScreen(new ClickGui());
         if (on.isEmpty()) return;
         if (!Server.available()) { // sécurité : jamais actif en multijoueur
             on.clear();
@@ -310,7 +351,7 @@ public final class CheatModeClient implements ClientModInitializer {
 
     private void autoClick(MinecraftClient mc, ClientPlayerEntity player) {
         if (!mc.options.attackKey.isPressed()) return;
-        long interval = Math.max(1, Math.round(20.0 / AUTOCLICK_CPS));
+        long interval = Math.max(1, Math.round(20.0 / Settings.INSTANCE.autoclickCps));
         if (tick % interval != 0) return;
         player.swingHand(Hand.MAIN_HAND);
         if (mc.crosshairTarget instanceof EntityHitResult hit && valid(player, hit.getEntity(), true)) {
@@ -321,7 +362,7 @@ public final class CheatModeClient implements ClientModInitializer {
     /** Normale : frappe tous les monstres à portée toutes les 10 ticks. */
     private void killAura(MinecraftClient mc, ClientPlayerEntity player) {
         if (tick % 10 != 0) return;
-        for (LivingEntity target : targets(mc, player, KILLAURA_RANGE)) {
+        for (LivingEntity target : targets(mc, player, Settings.INSTANCE.killauraRange)) {
             mc.interactionManager.attackEntity(player, target);
             player.swingHand(Hand.MAIN_HAND);
         }
@@ -331,8 +372,8 @@ public final class CheatModeClient implements ClientModInitializer {
     private void legitAura(MinecraftClient mc, ClientPlayerEntity player) {
         if (player.getAttackCooldownProgress(0.5f) < 1.0f) return;
         Vec3d look = player.getRotationVec(1.0f);
-        double minDot = Math.cos(Math.toRadians(LEGIT_FOV / 2));
-        for (LivingEntity target : targets(mc, player, LEGIT_RANGE)) {
+        double minDot = Math.cos(Math.toRadians(Settings.INSTANCE.legitFov / 2));
+        for (LivingEntity target : targets(mc, player, Settings.INSTANCE.legitRange)) {
             Vec3d to = target.getBoundingBox().getCenter().subtract(player.getEyePos()).normalize();
             if (look.dotProduct(to) < minDot || !player.canSee(target)) continue;
             mc.interactionManager.attackEntity(player, target);
@@ -344,7 +385,7 @@ public final class CheatModeClient implements ClientModInitializer {
     /** Se téléporte derrière le monstre le plus proche et le frappe. */
     private void tpAura(MinecraftClient mc, ClientPlayerEntity player) {
         if (tick % 10 != 0) return;
-        List<LivingEntity> list = targets(mc, player, TPAURA_RANGE);
+        List<LivingEntity> list = targets(mc, player, Settings.INSTANCE.tpauraRange);
         if (list.isEmpty()) return;
         LivingEntity target = list.get(0);
 
@@ -371,7 +412,7 @@ public final class CheatModeClient implements ClientModInitializer {
         lastUse = use;
         if (!pressed || !player.getMainHandStack().isOf(Items.FEATHER)) return;
 
-        HitResult hit = player.raycast(CLICKTP_RANGE, 1.0f, false);
+        HitResult hit = player.raycast(Settings.INSTANCE.clicktpRange, 1.0f, false);
         if (!(hit instanceof BlockHitResult bhr) || hit.getType() != HitResult.Type.BLOCK) {
             say("§cAucun bloc en vue.");
             return;
