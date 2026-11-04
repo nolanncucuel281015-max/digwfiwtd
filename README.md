@@ -12,7 +12,9 @@ Le mod reste coupé sur un serveur tant que tu ne l'as pas autorisé :
 ⚠️ N'autorise que des serveurs où les cheats sont permis. Ailleurs, tu te fais bannir.
 
 En multijoueur, c'est le serveur qui a le dernier mot, donc :
-- **solo uniquement** (grisés dans le menu) : Reach, Timer, AntiVoid, GodMode, NoHunger, AntiFire, NoDrown, Magnet, FastBreak
+- **OP requis** (sur tes propres serveurs) : Reach, Timer, AntiVoid, GodMode, NoHunger, AntiFire, NoDrown, Magnet,
+  FastBreak. Le mod envoie de vraies commandes (`/effect`, `/attribute`, `/tick`, `/tp`) : le serveur les accepte
+  seulement si tu y es OP, sinon il les refuse et l'affiche dans le chat.
 - **limités** : ClickTP et TpAura 8 blocs max, KillAura 5,5 blocs max, Nuker un bloc à la fois à vitesse normale
 - `-gm` envoie `/gamemode`, qui ne marche que si tu es OP
 - Fly redescend un peu toutes les 2 s pour éviter le kick « flying is not enabled » de base ;

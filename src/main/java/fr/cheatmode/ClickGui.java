@@ -95,10 +95,8 @@ public final class ClickGui extends Screen {
             if (m.category != c) continue;
             List<Settings.Setting> settings = Settings.of(m);
             String arrow = settings.isEmpty() ? "" : (expanded.contains(m) ? " §7▾" : " §7▸");
-            boolean blocked = !CheatModeClient.solo() && !m.multiplayer();
-            String label = blocked ? "§8" + m.display + " (solo)" : m.display + arrow;
-            String desc = blocked ? m.description + " — solo uniquement" : m.description;
-            rows.add(new Row(label, cm.isOn(m), false, desc, button -> {
+            String desc = !CheatModeClient.solo() && m.needsOp() ? m.description + " (OP requis ici)" : m.description;
+            rows.add(new Row(m.display + arrow, cm.isOn(m), false, desc, button -> {
                 if (button == 0) cm.toggleModule(m);
                 else if (button == 1 && !settings.isEmpty()) {
                     if (!expanded.remove(m)) expanded.add(m);

@@ -70,12 +70,15 @@ public enum Module {
         this.commands.addAll(List.of(aliases));
     }
 
-    /** Modules impossibles en multijoueur : le serveur garde le contrôle (vie, faim, effets...). */
-    private static final java.util.Set<Module> SOLO_ONLY = java.util.EnumSet.of(
+    /**
+     * Modules qui, sur un serveur, passent par des commandes (/effect, /attribute, /tick, /tp) :
+     * ils ne marchent que si tu es OP sur ce serveur (c'est le serveur qui vérifie).
+     */
+    private static final java.util.Set<Module> NEEDS_OP = java.util.EnumSet.of(
             REACH, TIMER, ANTIVOID, GOD, NOHUNGER, ANTIFIRE, NODROWN, MAGNET, FASTBREAK);
 
-    public boolean multiplayer() {
-        return !SOLO_ONLY.contains(this);
+    public boolean needsOp() {
+        return NEEDS_OP.contains(this);
     }
 
     public String command() {

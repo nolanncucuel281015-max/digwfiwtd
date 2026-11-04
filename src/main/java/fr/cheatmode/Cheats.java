@@ -67,7 +67,10 @@ final class Cheats {
             StatusEffects.SPEED, Module.SPEED,
             StatusEffects.HASTE, Module.FASTBREAK,
             StatusEffects.FIRE_RESISTANCE, Module.ANTIFIRE,
-            StatusEffects.WATER_BREATHING, Module.NODROWN);
+            StatusEffects.WATER_BREATHING, Module.NODROWN,
+            StatusEffects.RESISTANCE, Module.GOD,
+            StatusEffects.REGENERATION, Module.GOD,
+            StatusEffects.SATURATION, Module.NOHUNGER);
 
     private final CheatModeClient cm;
     private final Xray xray = new Xray();
@@ -79,6 +82,7 @@ final class Cheats {
     private int airTicks, triggerWait, antiVoidCooldown;
     private Vec3d lastSafe;
     private BlockPos nukerTarget;
+    private int lastPlayerId = -1;
     private Integer savedFov;
     private Double savedTilt;
 
@@ -113,16 +117,23 @@ final class Cheats {
      */
     private void joinCleanup(MinecraftClient mc) {
         joinCleanupAt = -1;
-        if (!solo() || mc.player == null) return;
+        if (mc.player == null || !CheatModeClient.active()) return;
         List<String> cmds = new ArrayList<>();
-        for (Module m : List.of(Module.REACH, Module.ANTIKNOCKBACK, Module.HIGHJUMP, Module.STEP, Module.TIMER)) {
-            if (!on(m)) cmds.addAll(removeCmds(m));
+        if (solo()) {
+            for (Module m : List.of(Module.REACH, Module.ANTIKNOCKBACK, Module.HIGHJUMP, Module.STEP, Module.TIMER)) {
+                if (!on(m)) cmds.addAll(removeCmds(m));
+            }
+        } else if (!on(Module.REACH)) {
+            EntityAttributeInstance reach = mc.player.getAttributeInstance(EntityAttributes.ENTITY_INTERACTION_RANGE);
+            if (reach != null && reach.getBaseValue() != 3) cmds.addAll(removeCmds(Module.REACH));
         }
         for (StatusEffectInstance e : mc.player.getStatusEffects()) {
             Module m = EFFECTS.get(e.getEffectType());
-            if (m != null && e.isInfinite() && !on(m)) cmds.addAll(removeCmds(m));
+            if (m != null && e.isInfinite() && !on(m)) {
+                for (String c : removeCmds(m)) if (!cmds.contains(c)) cmds.add(c);
+            }
         }
-        Server.commands(cmds);
+        run(cmds);
     }
 
     void onEnable(Module m) {
@@ -142,6 +153,7 @@ final class Cheats {
             default -> {}
         }
         if (solo()) Server.commands(applyCmds(m));
+        else if (m.needsOp()) op(applyCmds(m));
     }
 
     void onDisable(Module m) {
@@ -176,13 +188,26 @@ final class Cheats {
             default -> {}
         }
         if (solo()) Server.commands(removeCmds(m));
+        else if (m.needsOp()) op(removeCmds(m));
     }
 
     void reapply(Module m) {
-        if (!solo()) return; // en multijoueur les réglages sont lus à chaque tick
+        if (!solo() && !m.needsOp()) return; // les autres modules lisent leurs réglages à chaque tick
         List<String> cmds = new ArrayList<>(removeCmds(m));
         cmds.addAll(applyCmds(m));
-        Server.commands(cmds);
+        run(cmds);
+    }
+
+    /** Solo : console du serveur intégré. Serveur : commandes envoyées en ton nom (il faut être OP). */
+    private static void run(List<String> cmds) {
+        if (solo()) Server.commands(cmds);
+        else op(cmds);
+    }
+
+    private static void op(List<String> cmds) {
+        var net = MinecraftClient.getInstance().getNetworkHandler();
+        if (net == null) return;
+        for (String c : cmds) net.sendChatCommand(c);
     }
 
     // =================================================================== solo : commandes serveur
@@ -209,11 +234,15 @@ final class Cheats {
             case HIGHJUMP -> List.of(attr("jump_strength", 0.42 * s.jumpBoost));
             case STEP -> List.of(attr("step_height", s.stepHeight));
             case TIMER -> List.of("tick rate " + (int) s.timerRate);
+            case GOD -> solo() ? List.of() : List.of(
+                    "effect give " + me() + " minecraft:resistance infinite 4 true",
+                    "effect give " + me() + " minecraft:regeneration infinite 4 true");
+            case NOHUNGER -> solo() ? List.of() : effect("saturation", 0);
             default -> List.of();
         };
     }
 
-    /** Commandes qui remettent tout comme avant (solo). */
+    /** Commandes qui remettent tout comme avant. */
     private static List<String> removeCmds(Module m) {
         String me = me();
         return switch (m) {
@@ -226,6 +255,9 @@ final class Cheats {
             case HIGHJUMP -> List.of(attr("jump_strength", 0.41999998688697815));
             case STEP -> List.of(attr("step_height", 0.6));
             case TIMER -> List.of("tick rate 20");
+            case GOD -> solo() ? List.of() : List.of("effect clear " + me + " minecraft:resistance",
+                    "effect clear " + me + " minecraft:regeneration");
+            case NOHUNGER -> solo() ? List.of() : List.of("effect clear " + me + " minecraft:saturation");
             default -> List.of();
         };
     }
@@ -257,6 +289,22 @@ final class Cheats {
         idleTick(mc);
         ClientPlayerEntity p = mc.player;
         boolean solo = solo();
+
+        // Après une mort (nouveau joueur = nouvel id), les effets/attributs serveur sont perdus : on les remet.
+        if (p.getId() != lastPlayerId) {
+            boolean respawned = lastPlayerId != -1;
+            lastPlayerId = p.getId();
+            if (respawned && !solo) {
+                List<String> cmds = new ArrayList<>();
+                for (Module m : Module.values()) if (on(m) && m.needsOp()) cmds.addAll(applyCmds(m));
+                op(cmds);
+            }
+        }
+        if (!solo && on(Module.MAGNET) && tick % 10 == 0) {
+            int r = (int) Settings.INSTANCE.magnetRange;
+            op(List.of("tp @e[type=minecraft:item,distance=.." + r + "] @s",
+                    "tp @e[type=minecraft:experience_orb,distance=.." + r + "] @s"));
+        }
 
         if (solo) {
             serverUpkeep(p);
@@ -461,17 +509,21 @@ final class Cheats {
         lastJump = jump;
     }
 
-    /** Solo uniquement : téléporte au dernier endroit sûr si on tombe dans le vide. */
+    /** Téléporte au dernier endroit sûr si on tombe dans le vide (sur un serveur : /tp, OP requis). */
     private void antiVoid(MinecraftClient mc, ClientPlayerEntity p) {
         if (antiVoidCooldown > 0) antiVoidCooldown--;
         if (p.isOnGround()) {
             lastSafe = p.getEntityPos();
         } else if (lastSafe != null && antiVoidCooldown == 0 && p.getY() < mc.world.getBottomY() - 2) {
             Vec3d safe = lastSafe;
-            Server.withPlayer(p.getUuid(), sp -> {
-                sp.requestTeleport(safe.x, safe.y, safe.z);
-                sp.onLanding();
-            });
+            if (solo()) {
+                Server.withPlayer(p.getUuid(), sp -> {
+                    sp.requestTeleport(safe.x, safe.y, safe.z);
+                    sp.onLanding();
+                });
+            } else {
+                op(List.of(String.format(Locale.ROOT, "tp @s %.3f %.3f %.3f", safe.x, safe.y, safe.z)));
+            }
             p.setVelocity(Vec3d.ZERO);
             antiVoidCooldown = 20;
             say("§eAntiVoid : ramené au sol.");

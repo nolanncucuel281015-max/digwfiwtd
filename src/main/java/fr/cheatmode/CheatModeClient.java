@@ -119,10 +119,6 @@ public final class CheatModeClient implements ClientModInitializer {
             notAllowed();
             return false;
         }
-        if (!solo() && !m.multiplayer()) {
-            say("§c" + m.display + " : solo uniquement (en multijoueur c'est le serveur qui décide).");
-            return false;
-        }
         return true;
     }
 
@@ -155,6 +151,9 @@ public final class CheatModeClient implements ClientModInitializer {
             cheats.onDisable(m);
         }
         if (!silent) say("§7" + m.display + " : " + (value ? "§aON" : "§cOFF"));
+        if (value && !silent && !solo() && m.needsOp()) {
+            say("§8(sur un serveur, " + m.display + " utilise des commandes : il faut y être OP)");
+        }
     }
 
     /** Ré-applique un module actif après un changement de réglage (niveau de speed, reach...). */
