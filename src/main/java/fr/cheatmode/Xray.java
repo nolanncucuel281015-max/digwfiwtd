@@ -4,24 +4,13 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * X-ray : pour chaque minerai proche, on fait apparaître un "block_display" glowing par-dessus.
- * Le contour glowing se voit à travers les murs, avec une couleur par minerai.
- * Aucune texture n'est modifiée, donc ça marche aussi avec Sodium et les resource packs.
- */
-public final class Xray {
+/** X-ray : minerais en surbrillance, une couleur par minerai. */
+public final class Xray extends BlockEsp {
 
     private static final Map<Block, Integer> ORES = new HashMap<>();
 
@@ -43,89 +32,42 @@ public final class Xray {
         for (Block b : blocks) ORES.put(b, color);
     }
 
-    private static final int MAX = 350;
-
-    private final Map<BlockPos, Block> shown = new HashMap<>();
-    private RegistryKey<World> dimension;
-    /** Identifiant de session : permet de nettoyer les restes d'une partie précédente. */
-    private String session = newSession();
-
-    private static String newSession() {
-        return Long.toString(ThreadLocalRandom.current().nextLong() & Long.MAX_VALUE, 36);
+    public Xray() {
+        super("cmx", 350);
     }
 
-    public void refresh(MinecraftClient mc) {
-        if (mc.player == null || mc.world == null) return;
-        List<String> cmds = new ArrayList<>();
-
-        if (mc.world.getRegistryKey() != dimension) {
-            clear();
-            dimension = mc.world.getRegistryKey();
-        }
-
-        // 1) Minerais autour du joueur (le client connaît déjà les blocs).
-        final int RADIUS = (int) Settings.INSTANCE.xrayRadius;
+    @Override
+    protected void scan(MinecraftClient mc, Map<BlockPos, Block> out, int max) {
+        int r = (int) Settings.INSTANCE.xrayRadius;
         BlockPos center = mc.player.getBlockPos();
-        Map<BlockPos, Block> found = new HashMap<>();
         BlockPos.Mutable p = new BlockPos.Mutable();
-        scan:
-        for (int dx = -RADIUS; dx <= RADIUS; dx++) {
-            for (int dz = -RADIUS; dz <= RADIUS; dz++) {
-                for (int dy = -RADIUS; dy <= RADIUS; dy++) {
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dz = -r; dz <= r; dz++) {
+                for (int dy = -r; dy <= r; dy++) {
                     p.set(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
                     if (mc.world.isOutOfHeightLimit(p.getY())) continue;
                     Block b = mc.world.getBlockState(p).getBlock();
                     if (ORES.containsKey(b)) {
-                        found.put(p.toImmutable(), b);
-                        if (found.size() >= MAX) break scan;
+                        out.put(p.toImmutable(), b);
+                        if (out.size() >= max) return;
                     }
                 }
             }
         }
-
-        // 2) Retire ceux qui ont été minés ou qui sont trop loin.
-        Iterator<Map.Entry<BlockPos, Block>> it = shown.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<BlockPos, Block> e = it.next();
-            if (found.get(e.getKey()) != e.getValue()) {
-                cmds.add("kill @e[type=minecraft:block_display,tag=" + tag(e.getKey()) + "]");
-                it.remove();
-            }
-        }
-
-        // 3) Ajoute les nouveaux.
-        for (Map.Entry<BlockPos, Block> e : found.entrySet()) {
-            if (shown.containsKey(e.getKey())) continue;
-            BlockPos b = e.getKey();
-            cmds.add(String.format(Locale.ROOT,
-                    "summon minecraft:block_display %d %d %d {block_state:{Name:\"%s\"},Glowing:1b,"
-                            + "glow_color_override:%d,brightness:{sky:15,block:15},"
-                            + "Tags:[\"cmx\",\"cmxs_%s\",\"%s\"],"
-                            + "transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],"
-                            + "translation:[0.02f,0.02f,0.02f],scale:[0.96f,0.96f,0.96f]}}",
-                    b.getX(), b.getY(), b.getZ(), Registries.BLOCK.getId(e.getValue()),
-                    ORES.get(e.getValue()), session, tag(b)));
-            shown.put(b, e.getValue());
-        }
-
-        // Restes d'anciennes sessions (chunks qui étaient déchargés au moment du nettoyage).
-        cmds.add("kill @e[type=minecraft:block_display,tag=cmx,tag=!cmxs_" + session + "]");
-        Server.commands(cmds);
     }
 
-    public void clear() {
-        shown.clear();
-        Server.command("kill @e[type=minecraft:block_display,tag=cmx]");
+    @Override
+    protected int color(Block b) {
+        return ORES.get(b);
     }
 
-    /** Nouvelle partie : on oublie tout sans envoyer de commande. */
-    public void reset() {
-        shown.clear();
-        dimension = null;
-        session = newSession();
+    @Override
+    protected String displayBlock(Block b) {
+        return Registries.BLOCK.getId(b).toString();
     }
 
-    private static String tag(BlockPos p) {
-        return ("cmx_" + p.getX() + "_" + p.getY() + "_" + p.getZ()).replace('-', 'n');
+    @Override
+    protected float scale() {
+        return 0.96f;
     }
 }

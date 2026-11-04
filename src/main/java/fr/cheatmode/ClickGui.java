@@ -80,7 +80,7 @@ public final class ClickGui extends Screen {
 
     // =================================================================== contenu des panneaux
 
-    private record Row(String label, boolean active, boolean sub, Click click) {}
+    private record Row(String label, boolean active, boolean sub, String desc, Click click) {}
 
     @FunctionalInterface
     private interface Click {
@@ -94,7 +94,7 @@ public final class ClickGui extends Screen {
             if (m.category != c) continue;
             List<Settings.Setting> settings = Settings.of(m);
             String arrow = settings.isEmpty() ? "" : (expanded.contains(m) ? " §7▾" : " §7▸");
-            rows.add(new Row(m.display + arrow, cm.isOn(m), false, button -> {
+            rows.add(new Row(m.display + arrow, cm.isOn(m), false, m.description, button -> {
                 if (button == 0) cm.toggleModule(m);
                 else if (button == 1 && !settings.isEmpty()) {
                     if (!expanded.remove(m)) expanded.add(m);
@@ -102,7 +102,8 @@ public final class ClickGui extends Screen {
             }));
             if (expanded.contains(m)) {
                 for (Settings.Setting s : settings) {
-                    rows.add(new Row("§7" + s.name() + " : §f" + s.format(), false, true, button -> {
+                    rows.add(new Row("§7" + s.name() + " : §f" + s.format(), false, true,
+                            "Clic gauche : +   Clic droit : -", button -> {
                         s.change(button == 1 ? -1 : 1);
                         dirty = true;
                     }));
@@ -117,13 +118,14 @@ public final class ClickGui extends Screen {
             rows.add(gm("Spectateur", "spectator", GameMode.SPECTATOR, current));
             rows.add(gm("Aventure", "adventure", GameMode.ADVENTURE, current));
             boolean preset = cm.isOn(Module.XRAY) && cm.isOn(Module.SNEAK) && cm.isOn(Module.KILLAURA_LEGIT);
-            rows.add(new Row("Preset X §7(xray+sneak+legit)", preset, false, b -> { if (b == 0) cm.runPreset(); }));
+            rows.add(new Row("Preset X", preset, false, "X-Ray + Sneak + KillAura Legit (touche X)",
+                    b -> { if (b == 0) cm.runPreset(); }));
         }
         return rows;
     }
 
     private Row gm(String label, String cmd, GameMode mode, GameMode current) {
-        return new Row("GM " + label, mode == current, false,
+        return new Row("GM " + label, mode == current, false, "Passe en mode " + label.toLowerCase(),
                 b -> { if (b == 0) CheatModeClient.get().runGamemode(cmd); });
     }
 
@@ -144,9 +146,13 @@ public final class ClickGui extends Screen {
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         super.render(ctx, mouseX, mouseY, delta); // fond + boutons
+        String hoverDesc = null;
 
         for (Category c : order) {
             Settings.PanelPos pos = Settings.INSTANCE.panel(c);
+            // Reste dans l'écran (si la fenêtre a été réduite)
+            pos.x = Math.max(0, Math.min(width - W, pos.x));
+            pos.y = Math.max(0, Math.min(height - HEADER, pos.y));
             List<Row> rows = rows(c);
             int h = panelHeight(c, rows);
 
@@ -165,11 +171,19 @@ public final class ClickGui extends Screen {
                 int rh = r.sub ? SUB : ROW;
                 boolean hover = !editMode && mouseX >= pos.x && mouseX < pos.x + W && mouseY >= y && mouseY < y + rh;
                 if (r.active) ctx.fill(pos.x + 1, y, pos.x + W - 1, y + rh, (c.color & 0x00FFFFFF) | 0x90000000);
+                if (hover) hoverDesc = r.desc;
                 if (hover) ctx.fill(pos.x + 1, y, pos.x + W - 1, y + rh, 0x30FFFFFF);
                 ctx.drawTextWithShadow(textRenderer, r.label, pos.x + (r.sub ? 10 : 5), y + (r.sub ? 2 : 3),
                         r.active ? 0xFFFFFFFF : 0xFFC8C8C8);
                 y += rh;
             }
+        }
+
+        if (hoverDesc != null) {
+            int tw = textRenderer.getWidth(hoverDesc);
+            int tx = Math.min(mouseX + 10, width - tw - 6), ty = mouseY - 14;
+            ctx.fill(tx - 3, ty - 3, tx + tw + 3, ty + 11, 0xF0000000);
+            ctx.drawTextWithShadow(textRenderer, hoverDesc, tx, ty, 0xFFFFFFFF);
         }
 
         // Aide + état en bas

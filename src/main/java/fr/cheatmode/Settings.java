@@ -32,6 +32,18 @@ public final class Settings {
     public double speedLevel = 3;
     public double clicktpRange = 120;
     public double xrayRadius = 14;
+    public double storageRadius = 48;
+    public double triggerDelay = 0;      // ticks en plus après cooldown
+    public double aimSpeed = 8;          // degrés par tick
+    public double aimRange = 6;
+    public double reach = 6;
+    public double timerRate = 40;        // ticks par seconde (20 = normal)
+    public double jumpBoost = 2;         // multiplicateur
+    public double stepHeight = 1;
+    public double zoomFov = 30;
+    public double nukerRadius = 4;
+    public double magnetRange = 12;
+    public double fastBreakLevel = 3;
 
     public Map<String, PanelPos> panels = new LinkedHashMap<>();
 
@@ -47,7 +59,7 @@ public final class Settings {
 
     /** Position d'un panneau (crée la position par défaut si besoin). */
     public PanelPos panel(Category c) {
-        return panels.computeIfAbsent(c.name(), k -> new PanelPos(10 + c.ordinal() * 115, 30));
+        return panels.computeIfAbsent(c.name(), k -> new PanelPos(6 + c.ordinal() * 116, 6));
     }
 
     public void resetLayout() {
@@ -96,6 +108,15 @@ public final class Settings {
         }
     }
 
+    /** Réglage qui doit être ré-appliqué tout de suite (effet, attribut...) quand il change. */
+    private static Setting live(Module m, String name, DoubleSupplier get, DoubleConsumer set,
+                                double min, double max, double step) {
+        return new Setting(name, get, v -> {
+            set.accept(v);
+            CheatModeClient.get().reapply(m);
+        }, min, max, step);
+    }
+
     public static List<Setting> of(Module m) {
         Settings s = INSTANCE;
         return switch (m) {
@@ -105,12 +126,22 @@ public final class Settings {
                     new Setting("Angle", () -> s.legitFov, v -> s.legitFov = v, 30, 180, 10));
             case TPAURA -> List.of(new Setting("Portée", () -> s.tpauraRange, v -> s.tpauraRange = v, 4, 32, 2));
             case AUTOCLICK -> List.of(new Setting("CPS", () -> s.autoclickCps, v -> s.autoclickCps = v, 1, 20, 1));
-            case SPEED -> List.of(new Setting("Niveau", () -> s.speedLevel, v -> {
-                s.speedLevel = v;
-                CheatModeClient.get().refreshSpeed();
-            }, 1, 10, 1));
+            case SPEED -> List.of(live(m, "Niveau", () -> s.speedLevel, v -> s.speedLevel = v, 1, 10, 1));
             case CLICKTP -> List.of(new Setting("Portée", () -> s.clicktpRange, v -> s.clicktpRange = v, 20, 200, 10));
             case XRAY -> List.of(new Setting("Rayon", () -> s.xrayRadius, v -> s.xrayRadius = v, 6, 32, 2));
+            case STORAGEESP -> List.of(new Setting("Rayon", () -> s.storageRadius, v -> s.storageRadius = v, 16, 96, 8));
+            case TRIGGERBOT -> List.of(new Setting("Délai", () -> s.triggerDelay, v -> s.triggerDelay = v, 0, 20, 1));
+            case AIMASSIST -> List.of(
+                    new Setting("Vitesse", () -> s.aimSpeed, v -> s.aimSpeed = v, 1, 30, 1),
+                    new Setting("Portée", () -> s.aimRange, v -> s.aimRange = v, 3, 12, 1));
+            case REACH -> List.of(live(m, "Portée", () -> s.reach, v -> s.reach = v, 3, 8, 0.5));
+            case TIMER -> List.of(live(m, "Ticks/s", () -> s.timerRate, v -> s.timerRate = v, 5, 100, 5));
+            case HIGHJUMP -> List.of(live(m, "Force", () -> s.jumpBoost, v -> s.jumpBoost = v, 1, 5, 0.5));
+            case STEP -> List.of(live(m, "Hauteur", () -> s.stepHeight, v -> s.stepHeight = v, 1, 5, 0.5));
+            case ZOOM -> List.of(new Setting("FOV", () -> s.zoomFov, v -> s.zoomFov = v, 30, 60, 5));
+            case NUKER -> List.of(new Setting("Rayon", () -> s.nukerRadius, v -> s.nukerRadius = v, 1, 6, 1));
+            case MAGNET -> List.of(new Setting("Portée", () -> s.magnetRange, v -> s.magnetRange = v, 4, 32, 2));
+            case FASTBREAK -> List.of(live(m, "Niveau", () -> s.fastBreakLevel, v -> s.fastBreakLevel = v, 1, 10, 1));
             default -> List.of();
         };
     }
