@@ -1,0 +1,26 @@
+# Préfixe des commandes tapées dans le chat (ex: -fly, -gm creative)
+prefix: "-"
+
+killaura:
+  range: 6.0            # portée en mode normal
+  legit-range: 3.2      # portée en mode legit
+  legit-fov: 70         # angle (degrés) devant toi en mode legit
+  target-players: false # true = attaque aussi les autres joueurs
+  target-animals: false # true = attaque aussi les animaux passifs
+
+tpaura:
+  range: 16.0
+  interval-ticks: 10
+
+autoclick:
+  cps: 12               # clics par seconde (max 20, 1 tick = 1/20 s)
+  reach: 4
+
+clicktp:
+  item: FEATHER         # clic droit avec cet item = téléportation
+  max-distance: 120
+
+xray:
+  radius: 16
+  max-blocks: 400
+  refresh-ticks: 40
