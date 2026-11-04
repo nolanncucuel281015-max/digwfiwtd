@@ -75,7 +75,7 @@ final class Cheats {
 
     private long tick;
     private long joinCleanupAt = -1;
-    private boolean lastUse, lastJump, wasOnGround;
+    private boolean lastJump, wasOnGround;
     private int airTicks, triggerWait, antiVoidCooldown;
     private Vec3d lastSafe;
     private BlockPos nukerTarget;
@@ -132,6 +132,8 @@ final class Cheats {
             case STORAGEESP -> storage.refresh(mc);
             case FULLBRIGHT -> fullbright(mc.player);
             case ANTIVOID -> lastSafe = null;
+            case CLICKTP -> say("§7Prends une §eplume§7 en main et fais clic droit sur un bloc pour t'y téléporter.");
+            case ZOOM -> say("§7Maintiens §eC§7 pour zoomer.");
             case NUKER -> nukerTarget = null;
             case NOHURTCAM -> {
                 if (savedTilt == null) savedTilt = mc.options.getDamageTiltStrength().getValue();
@@ -233,6 +235,16 @@ final class Cheats {
     void startTick(MinecraftClient mc) {
         // Avant la lecture des touches par le jeu : le sneak reste enfoncé.
         if (mc.player != null && on(Module.SNEAK)) mc.options.sneakKey.setPressed(true);
+
+        // ClickTP : on lit les clics droits AVANT que le jeu ne les traite, pour ne rater aucun clic
+        // (même très rapide). On ne les "consomme" que si on tient une plume.
+        ClientPlayerEntity p = mc.player;
+        if (p != null && on(Module.CLICKTP) && mc.currentScreen == null && p.isAlive() && !p.isSpectator()
+                && p.getMainHandStack().isOf(Items.FEATHER)) {
+            boolean clicked = false;
+            while (mc.options.useKey.wasPressed()) clicked = true;
+            if (clicked) clickTp(mc, p, solo());
+        }
     }
 
     /** Tick sans aucun module actif. */
@@ -288,7 +300,6 @@ final class Cheats {
         if (on(Module.BUNNYHOP)) bunnyHop(mc, p);
         if (on(Module.AIRJUMP)) airJump(mc, p);
         if (on(Module.ANTIVOID)) antiVoid(mc, p);
-        if (on(Module.CLICKTP)) clickTp(mc, p, solo);
         wasOnGround = p.isOnGround();
 
         // Combat
@@ -469,11 +480,6 @@ final class Cheats {
 
     /** Clic droit avec une plume : téléportation là où tu regardes. */
     private void clickTp(MinecraftClient mc, ClientPlayerEntity p, boolean solo) {
-        boolean use = mc.options.useKey.isPressed();
-        boolean pressed = use && !lastUse;
-        lastUse = use;
-        if (!pressed || mc.currentScreen != null || !p.getMainHandStack().isOf(Items.FEATHER)) return;
-
         HitResult hit = p.raycast(Settings.INSTANCE.clicktpRange, 1.0f, false);
         if (!(hit instanceof BlockHitResult bhr) || hit.getType() != HitResult.Type.BLOCK) {
             say("§cAucun bloc en vue.");
@@ -495,6 +501,7 @@ final class Cheats {
         } else {
             p.setPosition(dest);
             p.setVelocity(Vec3d.ZERO);
+            say("§7Téléporté.");
         }
     }
 

@@ -247,8 +247,6 @@ public final class CheatModeClient implements ClientModInitializer {
                 if (m == Module.KILLAURA && arg.equals("legit")) m = Module.KILLAURA_LEGIT;
                 else if (!arg.isEmpty() && setValue(m, arg)) return;
                 toggleModule(m);
-                if (m == Module.CLICKTP && isOn(m)) say("§7Clic droit avec une plume pour te téléporter.");
-                if (m == Module.ZOOM && isOn(m)) say("§7Maintiens C pour zoomer.");
             }
         }
     }
